@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sharedcrud/dbmanager"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -11,6 +12,7 @@ import (
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "pong")
 	fmt.Println("incoming test request")
+	dbmanager.Connect()
 }
 
 func main() {
