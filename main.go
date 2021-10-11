@@ -9,16 +9,23 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func entityHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	fmt.Fprintf(w, "%+v\n", dbmanager.GetEntityByName(vars["name"]))
+
+}
+
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "pong")
 	fmt.Println("incoming test request")
-	dbmanager.Connect()
+	dbmanager.TestConnect()
 }
 
 func main() {
 	fmt.Println("Starting router and web server")
 	r := mux.NewRouter()
 	r.HandleFunc("/ping", testHandler)
+	r.HandleFunc("/entity/{name}", entityHandler)
 	r.Use(mux.CORSMethodMiddleware(r))
 	srv := &http.Server{
 		Handler: r,
