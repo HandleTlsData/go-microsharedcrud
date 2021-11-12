@@ -1,0 +1,83 @@
+---
+swagger: "2.0"
+info:
+  description: "CRUD operation over Entities."
+  version: "1.0.0"
+  title: "Microshared-CRUD"
+tags:
+- name: "entity"
+  description: "CRUD entities"
+schemes:
+- "https"
+- "http"
+paths:
+  /entity:
+    post:
+      tags:
+      - "entity"
+      summary: "Add a new entity"
+      description: ""
+      operationId: "entityStore"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Pet object that needs to be added to the store"
+        required: true
+        schema:
+          $ref: "#/definitions/Entity"
+        x-exportParamName: "Body"
+      responses:
+        "405":
+          description: "Invalid input"
+  /entity/{entityName}:
+    get:
+      tags:
+      - "entity"
+      summary: "Finds Entity by Name"
+      description: "Finds full entity by it's Name field"
+      operationId: "entityHandler"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "entityName"
+        in: "path"
+        description: "Name of entity that need to be returned"
+        required: true
+        type: "string"
+        x-exportParamName: "EntityName"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Entity"
+        "404":
+          description: "No entity was found"
+definitions:
+  Entity:
+    type: "object"
+    properties:
+      ID:
+        type: "integer"
+        format: "int64"
+      Name:
+        type: "string"
+      Description:
+        type: "string"
+      Status:
+        type: "string"
+    xml:
+      name: "Entity"
+    example:
+      Status: "Status"
+      Description: "Description"
+      ID: 0
+      Name: "Name"
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"

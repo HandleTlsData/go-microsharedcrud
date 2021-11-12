@@ -75,6 +75,7 @@ func Disconnect(z *DBConfig) {
 		z.DBCon.Close()
 	}
 	fmt.Println("Connection closed")
+
 }
 
 func Connect(z *DBConfig) error {
@@ -98,3 +99,5 @@ func Connect(z *DBConfig) error {
 	fmt.Println("Connected")
 	return nil
 }
+
+var CurrentDBConfig DBConfig
