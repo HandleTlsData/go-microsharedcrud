@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option go_package = "sharedcrud/grpc";
+option go_package = "sharedcrud/apirpc";
 
 package main;
 

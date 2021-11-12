@@ -14,8 +14,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sharedcrud/apirpc"
 	"sharedcrud/dbmanager"
 	sw "sharedcrud/go"
+
+	sharedserver "sharedcrud/api"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -23,6 +28,9 @@ func main() {
 		fmt.Println("specify microservice role as command-line argument")
 		return
 	}
+	s := grpc.NewServer()
+	srv := &sharedserver.GRPCServer{}
+	apirpc.RegisterCRUDIntercommunicationServer(s, srv)
 	fmt.Println("got argument: " + os.Args[1])
 	switch os.Args[1] {
 	case "alpha":

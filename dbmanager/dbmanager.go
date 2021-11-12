@@ -101,3 +101,5 @@ func Connect(z *DBConfig) error {
 }
 
 var CurrentDBConfig DBConfig
+var AlphaDBConfig DBConfig
+var BetaDBConfig DBConfig
