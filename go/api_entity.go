@@ -10,27 +10,90 @@
 package swagger
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	alpharpc "sharedcrud/apirpc/alpha"
+	betarpc "sharedcrud/apirpc/beta"
 	"sharedcrud/dbmanager"
 
 	"github.com/gorilla/mux"
+	"google.golang.org/grpc"
 )
 
-func EntityHandler(w http.ResponseWriter, r *http.Request) {
+func EntityHandlerAlpha(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	entity, err := dbmanager.GetEntityByName(&dbmanager.CurrentDBConfig, vars["entityName"])
+	entity, err := dbmanager.GetEntityByName(&dbmanager.AlphaDBConfig, vars["entityName"])
+
 	if err != nil {
-		fmt.Fprintf(w, "%s", err)
-	} else {
-		fmt.Fprintf(w, "%+v\n", entity)
+		log.Println(err)
 	}
+
+	conn, err := grpc.Dial(":8001", grpc.WithInsecure())
+	if err != nil {
+		log.Println(err)
+	}
+
+	//asking from Beta microservice to give entity from Beta's own db
+	bRPC := betarpc.NewBetaCRUDRPCClient(conn)
+	betaEntity, grpcerr := bRPC.GetBetaInformation(context.Background(), &betarpc.BetaGetRequest{EntityID: int64(entity.ID)})
+
+	if grpcerr != nil || betaEntity == nil {
+		log.Println(grpcerr)
+		fmt.Fprintf(w, "%s", grpcerr)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Beta always contains very last Description version since Beta is only responsible for Description modifications
+	entity.Description = betaEntity.GetDescription()
+
+	fmt.Fprintf(w, "%+v\n", entity)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
-func EntityStore(w http.ResponseWriter, r *http.Request) {
+func EntityHandlerBeta(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
+	if err != nil {
+		log.Println(err)
+	}
+
+	//asking Alpha first since Alpha is owner of Name field, which is our key to search records
+	aRPC := alpharpc.NewAlphaCRUDRPCClient(conn)
+	alphaEntity, grpcerr := aRPC.GetAlphaInformation(context.Background(), &alpharpc.AlphaGetRequest{EntityName: vars["entityName"]})
+
+	if grpcerr != nil || alphaEntity == nil {
+		log.Println(grpcerr)
+		fmt.Fprintf(w, "%s", grpcerr)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	entity, err := dbmanager.GetEntityByID(&dbmanager.BetaDBConfig, alphaEntity.GetID())
+	if err != nil {
+		fmt.Fprintf(w, "%s", err)
+	}
+
+	// Beta always contains very last Description version since Beta is only responsible for Description modifications
+	entity.Name = alphaEntity.GetName()
+
+	fmt.Fprintf(w, "%+v\n", entity)
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func EntityStoreAlpha(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func EntityStoreBeta(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }

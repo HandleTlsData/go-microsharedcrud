@@ -14,35 +14,31 @@
 
 syntax = "proto3";
 
-option go_package = "sharedcrud/apirpc";
+option go_package = "sharedcrud/betarpc";
 
 package main;
 
-service CRUDIntercommunication {
-  rpc GetBetaInformation (GetRequest) returns (GetReply) {}
-  rpc GetAlphaInformation (GetRequest) returns (GetReply) {}
-  rpc UpdateBetaInformation (UpdateRequest) returns (UpdateReply) {}
-  rpc UpdateAlphaInformation (UpdateRequest) returns (UpdateReply) {}
+service BetaCRUDRPC {
+  rpc GetBetaInformation (BetaGetRequest) returns (BetaGetReply) {}
+  rpc UpdateBetaInformation (BetaUpdateRequest) returns (BetaUpdateReply) {}
 }
 
-message UpdateRequest {
+message BetaUpdateRequest {
   string ID = 1;
   string Name = 2;
   string Description = 3;
   string Status = 4;
 }
 
-message UpdateReply {
+message BetaUpdateReply {
   string status = 1;
 }
 
-// The request message containing the user's name.
-message GetRequest {
-  string entityName = 1;
+message BetaGetRequest {
+  int64 entityID = 1;
 }
 
-// The response message containing the greetings
-message GetReply {
+message BetaGetReply {
   int64 ID = 1;
   string Name = 2;
   string Description = 3;

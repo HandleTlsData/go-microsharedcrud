@@ -23,6 +23,35 @@ type DBConfig struct {
 	DBCon    *sqlx.DB
 }
 
+func GetEntityByID(z *DBConfig, rID int64) (DBEntity, error) {
+	var err error
+	entity := DBEntity{}
+
+	err = verifyConnection(z)
+	if err != nil {
+		fmt.Println(err.Error())
+		return entity, err
+	}
+
+	rows, err := z.DBCon.NamedQuery("SELECT * FROM pendingData WHERE id=:first", map[string]interface{}{"first": rID})
+	if err != nil {
+		fmt.Println(err.Error())
+		return entity, err
+	}
+
+	for rows.Next() {
+		err = rows.StructScan(&entity)
+		if err != nil {
+			fmt.Println(err)
+			return entity, err
+		}
+		fmt.Printf("%+v\n", entity)
+		return entity, nil
+	}
+
+	return entity, errors.New("no records found")
+}
+
 func GetEntityByName(z *DBConfig, rName string) (DBEntity, error) {
 	var err error
 	entity := DBEntity{}

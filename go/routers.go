@@ -11,6 +11,7 @@ package swagger
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,18 +27,37 @@ type Route struct {
 
 type Routes []Route
 
-func NewRouter() *mux.Router {
+func NewRouter(service string) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	for _, route := range routes {
-		var handler http.Handler
-		handler = route.HandlerFunc
-		handler = Logger(handler, route.Name)
+	switch service {
+	case "alpha":
+		log.Printf("alpha microservice routing")
+		for _, route := range routesAlpha {
+			var handler http.Handler
+			handler = route.HandlerFunc
+			handler = Logger(handler, route.Name)
 
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(handler)
+			router.
+				Methods(route.Method).
+				Path(route.Pattern).
+				Name(route.Name).
+				Handler(handler)
+		}
+		break
+	case "beta":
+		log.Printf("beta microservice routing")
+		for _, route := range routesBeta {
+			var handler http.Handler
+			handler = route.HandlerFunc
+			handler = Logger(handler, route.Name)
+
+			router.
+				Methods(route.Method).
+				Path(route.Pattern).
+				Name(route.Name).
+				Handler(handler)
+		}
+		break
 	}
 
 	return router
@@ -47,7 +67,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World!")
 }
 
-var routes = Routes{
+var routesBeta = Routes{
 	Route{
 		"Index",
 		"GET",
@@ -59,13 +79,36 @@ var routes = Routes{
 		"EntityHandler",
 		strings.ToUpper("Get"),
 		"/entity/{entityName}",
-		EntityHandler,
+		EntityHandlerBeta,
 	},
 
 	Route{
 		"EntityStore",
 		strings.ToUpper("Post"),
 		"/entity",
-		EntityStore,
+		EntityStoreBeta,
+	},
+}
+
+var routesAlpha = Routes{
+	Route{
+		"Index",
+		"GET",
+		"/",
+		Index,
+	},
+
+	Route{
+		"EntityHandler",
+		strings.ToUpper("Get"),
+		"/entity/{entityName}",
+		EntityHandlerAlpha,
+	},
+
+	Route{
+		"EntityStore",
+		strings.ToUpper("Post"),
+		"/entity",
+		EntityStoreAlpha,
 	},
 }

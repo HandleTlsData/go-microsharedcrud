@@ -10,42 +10,101 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
-	"sharedcrud/apirpc"
 	"sharedcrud/dbmanager"
 	sw "sharedcrud/go"
 
 	sharedserver "sharedcrud/api"
+	alpharpc "sharedcrud/apirpc/alpha"
+	betarpc "sharedcrud/apirpc/beta"
 
 	"google.golang.org/grpc"
 )
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("specify microservice role as command-line argument")
+func clientDial(serviceName string) {
+	switch serviceName {
+	case "alpha":
+		conn, err := grpc.Dial(":8001", grpc.WithInsecure())
+		if err != nil {
+			log.Println(err)
+		}
+		// betarpc.NewBetaCRUDRPCClient(conn)
+		sharedserver.BetaConn = conn
+
+	case "beta":
+		conn, err := grpc.Dial(":8000", grpc.WithInsecure())
+		if err != nil {
+			log.Println(err)
+		}
+		sharedserver.AlphaConn = conn //alpharpc.NewAlphaCRUDRPCClient(conn)
+	}
+}
+
+func startAlphaGRPC() {
+	s := grpc.NewServer()
+	srv := &sharedserver.AlphaGRPCServer{}
+	alpharpc.RegisterAlphaCRUDRPCServer(s, srv)
+	conn, err := net.Listen("tcp", ":8000")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := s.Serve(conn); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func startBetaGRPC() {
+	s := grpc.NewServer()
+	srv := &sharedserver.BetaGRPCServer{}
+	betarpc.RegisterBetaCRUDRPCServer(s, srv)
+	conn, err := net.Listen("tcp", ":8001")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := s.Serve(conn); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+//using two grpc servers linked in the same binary with same message names (GetRequest, GetReply, etc...)
+//can cause issues during application runtime.
+func startService(serviceName string) {
+	switch serviceName {
+	case "alpha":
+		go startAlphaGRPC()
+		router := sw.NewRouter(serviceName)
+		log.Fatal(http.ListenAndServe(":8080", router))
+	case "beta":
+		go startBetaGRPC()
+		router := sw.NewRouter(serviceName)
+		log.Fatal(http.ListenAndServe(":8081", router))
+	default:
+		log.Printf("unknown microservice role specified")
 		return
 	}
-	s := grpc.NewServer()
-	srv := &sharedserver.GRPCServer{}
-	apirpc.RegisterCRUDIntercommunicationServer(s, srv)
-	fmt.Println("got argument: " + os.Args[1])
-	switch os.Args[1] {
-	case "alpha":
-		fmt.Println("alpha microservice")
-		dbmanager.CurrentDBConfig = dbmanager.DBConfig{"95.214.55.115", "alpha", "A7bdLipLxw6CeEAf", "alpha", nil}
-	case "beta":
-		fmt.Println("beta microservice")
-		dbmanager.CurrentDBConfig = dbmanager.DBConfig{"95.214.55.115", "beta", "LFmaH2X8tLiDsCDS", "beta", nil}
-	default:
-		fmt.Printf("unknown microservice role specified")
+	go clientDial(serviceName)
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		log.Println("Specify microservice role as command-line argument")
+		return
 	}
 
-	log.Printf("Server started")
+	switch os.Args[1] {
+	case "alpha":
+		dbmanager.AlphaDBConfig = dbmanager.DBConfig{"95.214.55.115", "alpha", "A7bdLipLxw6CeEAf", "alpha", nil}
+	case "beta":
+		dbmanager.BetaDBConfig = dbmanager.DBConfig{"95.214.55.115", "beta", "LFmaH2X8tLiDsCDS", "beta", nil}
+	default:
+		log.Printf("unknown microservice role specified")
+		return
+	}
 
-	router := sw.NewRouter()
-
-	log.Fatal(http.ListenAndServe(":8080", router))
+	startService(os.Args[1])
 }
