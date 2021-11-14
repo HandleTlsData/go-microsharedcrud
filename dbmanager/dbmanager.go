@@ -3,16 +3,18 @@ package dbmanager
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
 type DBEntity struct {
-	ID          int    `json:"id" db:"id"`
+	ID          int    `json:"ID" db:"id"`
 	Name        string `json:"Name" db:"Name"`
 	Description string `json:"Description" db:"Description"`
 	Status      string `json:"Status" db:"Status"`
+	Uid         int    `json:"uid" db:"uid"`
 }
 
 type DBConfig struct {
@@ -21,6 +23,102 @@ type DBConfig struct {
 	Password string
 	DbName   string
 	DBCon    *sqlx.DB
+}
+
+var AlphaDBConfig DBConfig
+var BetaDBConfig DBConfig
+
+func DeleteEntity(z *DBConfig, entID int) error {
+	var err error
+	entity, err := GetEntityByID(z, int64(entID))
+
+	if err == nil {
+		result, err := z.DBCon.NamedExec("DELETE FROM pendingData WHERE id=:first",
+			map[string]interface{}{"first": entity.ID})
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		log.Println(result)
+
+		return nil
+	}
+	return err
+}
+
+func StoreEntityBeta(z *DBConfig, newEntity DBEntity) error {
+	var err error
+
+	entity, err := GetEntityByID(z, int64(newEntity.ID))
+	if err != nil {
+		if err.Error() == "no records found" {
+			result, err := z.DBCon.NamedExec("INSERT INTO pendingData (`id`, `Name`, `Description`, `Status`) VALUES (:zero, :first, :second, :third)",
+				map[string]interface{}{"zero": newEntity.ID, "first": newEntity.Name, "second": newEntity.Description, "third": newEntity.Status})
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			log.Println(result)
+
+			return nil
+
+		} else {
+			return err
+		}
+	} else {
+		if entity.Description == newEntity.Description && entity.Status == newEntity.Status {
+			return nil
+		} else {
+			result, err := z.DBCon.NamedExec("UPDATE pendingData SET Description=:first, Status=:second WHERE id=:third",
+				map[string]interface{}{"first": newEntity.Description, "second": newEntity.Status, "third": newEntity.ID})
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+			log.Println(result)
+			return nil
+		}
+	}
+
+}
+
+func StoreEntityAlpha(z *DBConfig, newEntity DBEntity) error {
+	var err error
+	// rows, err := z.DBCon.NamedQuery("SELECT * FROM pendingData WHERE id=:first", map[string]interface{}{"first": strconv.Itoa(newEntity.ID)})
+	entity, err := GetEntityByID(z, int64(newEntity.ID))
+
+	if err != nil {
+		if err.Error() == "no records found" {
+			result, err := z.DBCon.NamedExec("INSERT INTO pendingData (`id`, `Name`, `Description`, `Status`) VALUES (:zero, :first, :second, :third)",
+				map[string]interface{}{"zero": newEntity.ID, "first": newEntity.Name, "second": newEntity.Description, "third": newEntity.Status})
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			log.Println(result)
+
+			return nil
+
+		} else {
+			return err
+		}
+	} else {
+		if entity.Name == newEntity.Name && entity.Status == newEntity.Status {
+			return nil
+		} else {
+			result, err := z.DBCon.NamedExec("UPDATE pendingData SET Name=:first, Status=:second WHERE id=:third",
+				map[string]interface{}{"first": newEntity.Name, "second": newEntity.Status, "third": newEntity.ID})
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+			log.Println(result)
+			return nil
+		}
+	}
+
 }
 
 func GetEntityByID(z *DBConfig, rID int64) (DBEntity, error) {
@@ -34,35 +132,6 @@ func GetEntityByID(z *DBConfig, rID int64) (DBEntity, error) {
 	}
 
 	rows, err := z.DBCon.NamedQuery("SELECT * FROM pendingData WHERE id=:first", map[string]interface{}{"first": rID})
-	if err != nil {
-		fmt.Println(err.Error())
-		return entity, err
-	}
-
-	for rows.Next() {
-		err = rows.StructScan(&entity)
-		if err != nil {
-			fmt.Println(err)
-			return entity, err
-		}
-		fmt.Printf("%+v\n", entity)
-		return entity, nil
-	}
-
-	return entity, errors.New("no records found")
-}
-
-func GetEntityByName(z *DBConfig, rName string) (DBEntity, error) {
-	var err error
-	entity := DBEntity{}
-
-	err = verifyConnection(z)
-	if err != nil {
-		fmt.Println(err.Error())
-		return entity, err
-	}
-
-	rows, err := z.DBCon.NamedQuery("SELECT * FROM pendingData WHERE Name=:first", map[string]interface{}{"first": rName})
 	if err != nil {
 		fmt.Println(err.Error())
 		return entity, err
@@ -128,7 +197,3 @@ func Connect(z *DBConfig) error {
 	fmt.Println("Connected")
 	return nil
 }
-
-var CurrentDBConfig DBConfig
-var AlphaDBConfig DBConfig
-var BetaDBConfig DBConfig

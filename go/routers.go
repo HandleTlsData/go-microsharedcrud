@@ -67,29 +67,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World!")
 }
 
-var routesBeta = Routes{
-	Route{
-		"Index",
-		"GET",
-		"/",
-		Index,
-	},
-
-	Route{
-		"EntityHandler",
-		strings.ToUpper("Get"),
-		"/entity/{entityName}",
-		EntityHandlerBeta,
-	},
-
-	Route{
-		"EntityStore",
-		strings.ToUpper("Post"),
-		"/entity",
-		EntityStoreBeta,
-	},
-}
-
 var routesAlpha = Routes{
 	Route{
 		"Index",
@@ -99,9 +76,16 @@ var routesAlpha = Routes{
 	},
 
 	Route{
+		"EntityDelete",
+		strings.ToUpper("Delete"),
+		"/entity/delete/{entID}",
+		EntityDeleteAlpha,
+	},
+
+	Route{
 		"EntityHandler",
 		strings.ToUpper("Get"),
-		"/entity/{entityName}",
+		"/entity/{entID}",
 		EntityHandlerAlpha,
 	},
 
@@ -110,5 +94,35 @@ var routesAlpha = Routes{
 		strings.ToUpper("Post"),
 		"/entity",
 		EntityStoreAlpha,
+	},
+}
+
+var routesBeta = Routes{
+	Route{
+		"Index",
+		"GET",
+		"/",
+		Index,
+	},
+
+	Route{
+		"EntityDelete",
+		strings.ToUpper("Delete"),
+		"/entity/delete/{entID}",
+		EntityDeleteBeta,
+	},
+
+	Route{
+		"EntityHandler",
+		strings.ToUpper("Get"),
+		"/entity/{entID}",
+		EntityHandlerBeta,
+	},
+
+	Route{
+		"EntityStore",
+		strings.ToUpper("Post"),
+		"/entity",
+		EntityStoreBeta,
 	},
 }

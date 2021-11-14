@@ -35,7 +35,7 @@ message AlphaUpdateReply {
 }
 
 message AlphaGetRequest {
-  string entityName = 1;
+  int64 entityID = 1;
 }
 
 // The response message containing the greetings

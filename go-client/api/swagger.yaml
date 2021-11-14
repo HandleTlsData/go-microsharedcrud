@@ -73,7 +73,7 @@ paths:
         description: "Name of entity that need to be returned"
         required: true
         type: "string"
-        x-exportParamName: "EntityName"
+        x-exportParamName: "EntName"
       responses:
         "200":
           description: "successful operation"

@@ -24,35 +24,16 @@ import (
 	"google.golang.org/grpc"
 )
 
-func clientDial(serviceName string) {
-	switch serviceName {
-	case "alpha":
-		conn, err := grpc.Dial(":8001", grpc.WithInsecure())
-		if err != nil {
-			log.Println(err)
-		}
-		// betarpc.NewBetaCRUDRPCClient(conn)
-		sharedserver.BetaConn = conn
-
-	case "beta":
-		conn, err := grpc.Dial(":8000", grpc.WithInsecure())
-		if err != nil {
-			log.Println(err)
-		}
-		sharedserver.AlphaConn = conn //alpharpc.NewAlphaCRUDRPCClient(conn)
-	}
-}
-
 func startAlphaGRPC() {
 	s := grpc.NewServer()
 	srv := &sharedserver.AlphaGRPCServer{}
 	alpharpc.RegisterAlphaCRUDRPCServer(s, srv)
 	conn, err := net.Listen("tcp", ":8000")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 	if err := s.Serve(conn); err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 
 }
@@ -63,10 +44,10 @@ func startBetaGRPC() {
 	betarpc.RegisterBetaCRUDRPCServer(s, srv)
 	conn, err := net.Listen("tcp", ":8001")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 	if err := s.Serve(conn); err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 
 }
@@ -87,7 +68,6 @@ func startService(serviceName string) {
 		log.Printf("unknown microservice role specified")
 		return
 	}
-	go clientDial(serviceName)
 }
 
 func main() {

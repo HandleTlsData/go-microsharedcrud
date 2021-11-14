@@ -6,6 +6,7 @@ import (
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
 	"sharedcrud/dbmanager"
+	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -18,8 +19,7 @@ type AlphaGRPCServer struct {
 }
 
 func (s *AlphaGRPCServer) GetAlphaInformation(ctx context.Context, req *alpharpc.AlphaGetRequest) (*alpharpc.AlphaGetReply, error) {
-	// sharedserver.AlphaGRPCServer = alpharpc.NewAlphaCRUDRPCClient()
-	entity, err := dbmanager.GetEntityByName(&dbmanager.AlphaDBConfig, req.GetEntityName())
+	entity, err := dbmanager.GetEntityByID(&dbmanager.AlphaDBConfig, req.GetEntityID())
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -29,7 +29,21 @@ func (s *AlphaGRPCServer) GetAlphaInformation(ctx context.Context, req *alpharpc
 }
 
 func (s *AlphaGRPCServer) UpdateAlphaInformation(ctx context.Context, req *alpharpc.AlphaUpdateRequest) (*alpharpc.AlphaUpdateReply, error) {
-	return nil, nil
+	i, err := strconv.Atoi(req.ID)
+	if err != nil {
+		// handle error
+		log.Println(err.Error())
+		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+	}
+
+	err = dbmanager.StoreEntityAlpha(&dbmanager.AlphaDBConfig, dbmanager.DBEntity{ID: i, Name: req.Name, Description: req.Description, Status: req.Status})
+	if err != nil {
+		// handle error
+		log.Println(err.Error())
+		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+	}
+
+	return &alpharpc.AlphaUpdateReply{Status: "200"}, nil
 
 }
 
@@ -49,6 +63,20 @@ func (s *BetaGRPCServer) GetBetaInformation(ctx context.Context, req *betarpc.Be
 }
 
 func (s *BetaGRPCServer) UpdateBetaInformation(ctx context.Context, req *betarpc.BetaUpdateRequest) (*betarpc.BetaUpdateReply, error) {
-	return nil, nil
+	i, err := strconv.Atoi(req.ID)
+	if err != nil {
+		// handle error
+		log.Println(err.Error())
+		return &betarpc.BetaUpdateReply{Status: "500"}, err
+	}
 
+	err = dbmanager.StoreEntityBeta(&dbmanager.BetaDBConfig, dbmanager.DBEntity{ID: i, Name: req.Name,
+		Description: req.Description, Status: req.Status})
+	if err != nil {
+		// handle error
+		log.Println(err.Error())
+		return &betarpc.BetaUpdateReply{Status: "500"}, err
+	}
+
+	return &betarpc.BetaUpdateReply{Status: "200"}, nil
 }
