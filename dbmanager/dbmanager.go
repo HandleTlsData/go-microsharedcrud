@@ -25,10 +25,14 @@ type DBConfig struct {
 	DBCon    *sqlx.DB
 }
 
+const NoRecordsReason = "no records found"
+
 var AlphaDBConfig DBConfig
 var BetaDBConfig DBConfig
 
-func DeleteEntity(z *DBConfig, entID int) error {
+var CurrentAppConfig string
+
+func DeleteEntityByID(z *DBConfig, entID int) error {
 	var err error
 	entity, err := GetEntityByID(z, int64(entID))
 
@@ -51,7 +55,7 @@ func StoreEntityBeta(z *DBConfig, newEntity DBEntity) error {
 
 	entity, err := GetEntityByID(z, int64(newEntity.ID))
 	if err != nil {
-		if err.Error() == "no records found" {
+		if err.Error() == NoRecordsReason {
 			result, err := z.DBCon.NamedExec("INSERT INTO pendingData (`id`, `Name`, `Description`, `Status`) VALUES (:zero, :first, :second, :third)",
 				map[string]interface{}{"zero": newEntity.ID, "first": newEntity.Name, "second": newEntity.Description, "third": newEntity.Status})
 			if err != nil {
@@ -89,9 +93,9 @@ func StoreEntityAlpha(z *DBConfig, newEntity DBEntity) error {
 	entity, err := GetEntityByID(z, int64(newEntity.ID))
 
 	if err != nil {
-		if err.Error() == "no records found" {
-			result, err := z.DBCon.NamedExec("INSERT INTO pendingData (`id`, `Name`, `Description`, `Status`) VALUES (:zero, :first, :second, :third)",
-				map[string]interface{}{"zero": newEntity.ID, "first": newEntity.Name, "second": newEntity.Description, "third": newEntity.Status})
+		if err.Error() == NoRecordsReason {
+			result, err := z.DBCon.NamedExec("INSERT INTO pendingData (`Name`, `Description`, `Status`) VALUES (:first, :second, :third)",
+				map[string]interface{}{"first": newEntity.Name, "second": newEntity.Description, "third": newEntity.Status})
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -147,7 +151,36 @@ func GetEntityByID(z *DBConfig, rID int64) (DBEntity, error) {
 		return entity, nil
 	}
 
-	return entity, errors.New("no records found")
+	return entity, errors.New(NoRecordsReason)
+}
+
+func GetEntityByName(z *DBConfig, EntityName string) (DBEntity, error) {
+	var err error
+	entity := DBEntity{}
+
+	err = verifyConnection(z)
+	if err != nil {
+		fmt.Println(err.Error())
+		return entity, err
+	}
+
+	rows, err := z.DBCon.NamedQuery("SELECT * FROM pendingData WHERE Name=:first", map[string]interface{}{"first": EntityName})
+	if err != nil {
+		fmt.Println(err.Error())
+		return entity, err
+	}
+
+	for rows.Next() {
+		err = rows.StructScan(&entity)
+		if err != nil {
+			fmt.Println(err)
+			return entity, err
+		}
+		fmt.Printf("%+v\n", entity)
+		return entity, nil
+	}
+
+	return entity, errors.New(NoRecordsReason)
 }
 
 func verifyConnection(z *DBConfig) error {

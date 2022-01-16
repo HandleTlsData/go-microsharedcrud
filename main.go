@@ -20,6 +20,7 @@ import (
 	sharedserver "sharedcrud/api"
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
+	restAPI "sharedcrud/cmd/sharedcrud-server"
 
 	"google.golang.org/grpc"
 )
@@ -55,6 +56,8 @@ func startBetaGRPC() {
 //using two grpc servers linked in the same binary with same message names (GetRequest, GetReply, etc...)
 //can cause issues during application runtime.
 func startService(serviceName string) {
+	dbmanager.CurrentAppConfig = serviceName
+	go restAPI.Entry()
 	switch serviceName {
 	case "alpha":
 		go startAlphaGRPC()

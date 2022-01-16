@@ -1,0 +1,4 @@
+package gdbmanager
+
+func GetEntityByID() {
+}
