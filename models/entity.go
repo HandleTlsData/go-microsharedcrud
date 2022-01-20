@@ -16,7 +16,7 @@ import (
 // Example: {"Description":"Description","ID":0,"Name":"Name","Status":"Status"}
 //
 // swagger:model Entity
-type Entity struct {
+type  Entity struct {
 
 	// description
 	Description string `json:"Description,omitempty"`

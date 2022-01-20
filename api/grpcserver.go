@@ -6,6 +6,8 @@ import (
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
 	"sharedcrud/dbmanager"
+	gdbmanager "sharedcrud/gormdb"
+	"sharedcrud/models"
 	"strconv"
 
 	"google.golang.org/grpc"
@@ -19,13 +21,13 @@ type AlphaGRPCServer struct {
 }
 
 func (s *AlphaGRPCServer) GetAlphaInformation(ctx context.Context, req *alpharpc.AlphaGetRequest) (*alpharpc.AlphaGetReply, error) {
-	entity, err := dbmanager.GetEntityByID(&dbmanager.AlphaDBConfig, req.GetEntityID())
+	entity, err := gdbmanager.GetEntityByName(req.GetEntityName())
 	if err != nil {
 		log.Println(err)
 	} else {
 		log.Println(entity)
 	}
-	return &alpharpc.AlphaGetReply{ID: int64(entity.ID), Name: entity.Name, Description: entity.Description, Status: entity.Status}, err
+	return &alpharpc.AlphaGetReply{ID: entity.ID, Name: entity.Name, Description: entity.Description, Status: entity.Status}, err
 }
 
 func (s *AlphaGRPCServer) UpdateAlphaInformation(ctx context.Context, req *alpharpc.AlphaUpdateRequest) (*alpharpc.AlphaUpdateReply, error) {
@@ -36,7 +38,7 @@ func (s *AlphaGRPCServer) UpdateAlphaInformation(ctx context.Context, req *alpha
 		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
 	}
 
-	err = dbmanager.StoreEntityAlpha(&dbmanager.AlphaDBConfig, dbmanager.DBEntity{ID: i, Name: req.Name, Description: req.Description, Status: req.Status})
+	err = gdbmanager.StoreEntity(models.Entity{ID: int64(i), Name: req.Name, Description: req.Description, Status: req.Status})
 	if err != nil {
 		// handle error
 		log.Println(err.Error())
@@ -53,13 +55,13 @@ type BetaGRPCServer struct {
 
 func (s *BetaGRPCServer) GetBetaInformation(ctx context.Context, req *betarpc.BetaGetRequest) (*betarpc.BetaGetReply, error) {
 
-	entity, err := dbmanager.GetEntityByID(&dbmanager.BetaDBConfig, req.GetEntityID())
+	entity, err := gdbmanager.GetEntityByName(req.GetEntityName())
 	if err != nil {
 		log.Println(err)
 	} else {
 		log.Println(entity)
 	}
-	return &betarpc.BetaGetReply{ID: int64(entity.ID), Name: entity.Name, Description: entity.Description, Status: entity.Status}, err
+	return &betarpc.BetaGetReply{ID: entity.ID, Name: entity.Name, Description: entity.Description, Status: entity.Status}, err
 }
 
 func (s *BetaGRPCServer) UpdateBetaInformation(ctx context.Context, req *betarpc.BetaUpdateRequest) (*betarpc.BetaUpdateReply, error) {

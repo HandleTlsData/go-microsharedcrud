@@ -133,5 +133,5 @@ var BetaCRUDRPC_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "beta-crud-grpc.proto",
+	Metadata: "apirpc/beta-crud-grpc.proto",
 }

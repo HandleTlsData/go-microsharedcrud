@@ -185,7 +185,7 @@ func EntityDeleteAlpha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbmanager.DeleteEntity(&dbmanager.AlphaDBConfig, i)
+	err = dbmanager.DeleteEntityByID(&dbmanager.AlphaDBConfig, i)
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -205,7 +205,7 @@ func EntityDeleteBeta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbmanager.DeleteEntity(&dbmanager.BetaDBConfig, i)
+	err = dbmanager.DeleteEntityByID(&dbmanager.BetaDBConfig, i)
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

@@ -133,5 +133,5 @@ var AlphaCRUDRPC_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "alpha-crud-grpc.proto",
+	Metadata: "apirpc/alpha-crud-grpc.proto",
 }
