@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"sharedcrud/dbmanager"
 	"sharedcrud/models"
 
 	"gorm.io/driver/mysql"
@@ -19,10 +18,12 @@ var SqlDB *sql.DB
 const StrNoRecords = "record not found"
 const EntityAlreadyExists = "entity already exists"
 
+var CurrentAppConfig string
+
 func InitDB() {
 	var err error
 	var dsn string
-	switch dbmanager.CurrentAppConfig {
+	switch CurrentAppConfig {
 	case "alpha":
 		dsn = fmt.Sprintf("alphadb:kFimTXzzdnpTDFLE@tcp(149.34.51.91:3306)/alphadb?charset=utf8mb4&parseTime=True")
 	case "beta":

@@ -16,7 +16,6 @@ import (
 
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
-	"sharedcrud/dbmanager"
 	gdbmanager "sharedcrud/gormdb"
 	"sharedcrud/models"
 	"sharedcrud/restapi/operations"
@@ -319,7 +318,7 @@ func configureAPI(api *operations.SharedcrudAPI) http.Handler {
 
 	gdbmanager.InitDB()
 
-	switch dbmanager.CurrentAppConfig {
+	switch gdbmanager.CurrentAppConfig {
 	case "alpha":
 		api.EntityEntityDeleteHandler = entity.EntityDeleteHandlerFunc(AlphaEntityDelete)
 		api.EntityEntityGetHandler = entity.EntityGetHandlerFunc(AlphaEntityGet)

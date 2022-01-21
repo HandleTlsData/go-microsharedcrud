@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/loads"
 	flags "github.com/jessevdk/go-flags"
 
-	"sharedcrud/dbmanager"
+	gdbmanager "sharedcrud/gormdb"
 	"sharedcrud/restapi"
 	"sharedcrud/restapi/operations"
 )
@@ -25,7 +25,7 @@ func Entry() {
 	api := operations.NewSharedcrudAPI(swaggerSpec)
 	server := restapi.NewServer(api)
 
-	switch dbmanager.CurrentAppConfig {
+	switch gdbmanager.CurrentAppConfig {
 	case "alpha":
 		server.Port = 8080
 	case "beta":

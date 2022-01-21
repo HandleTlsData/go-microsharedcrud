@@ -13,12 +13,12 @@ import (
 	"log"
 	"net"
 	"os"
-	"sharedcrud/dbmanager"
 
 	sharedserver "sharedcrud/api"
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
 	restAPI "sharedcrud/cmd/sharedcrud-server"
+	gdbmanager "sharedcrud/gormdb"
 
 	"google.golang.org/grpc"
 )
@@ -54,16 +54,12 @@ func startBetaGRPC() {
 //using two grpc servers linked in the same binary with same message names (GetRequest, GetReply, etc...)
 //can cause issues during application runtime.
 func startService(serviceName string) {
-	dbmanager.CurrentAppConfig = serviceName
+	gdbmanager.CurrentAppConfig = serviceName
 	switch serviceName {
 	case "alpha":
 		go startAlphaGRPC()
-		// router := sw.NewRouter(serviceName)
-		// log.Fatal(http.ListenAndServe(":8080", router))
 	case "beta":
 		go startBetaGRPC()
-		// router := sw.NewRouter(serviceName)
-		// log.Fatal(http.ListenAndServe(":8081", router))
 	default:
 		log.Printf("unknown microservice role specified")
 		return
@@ -76,16 +72,5 @@ func main() {
 		log.Println("Specify microservice role as command-line argument")
 		return
 	}
-
-	switch os.Args[1] {
-	case "alpha":
-		dbmanager.AlphaDBConfig = dbmanager.DBConfig{"95.214.55.115", "alpha", "A7bdLipLxw6CeEAf", "alpha", nil}
-	case "beta":
-		dbmanager.BetaDBConfig = dbmanager.DBConfig{"95.214.55.115", "beta", "LFmaH2X8tLiDsCDS", "beta", nil}
-	default:
-		log.Printf("unknown microservice role specified")
-		return
-	}
-
 	startService(os.Args[1])
 }
