@@ -19,7 +19,9 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AlphaCRUDRPCClient interface {
 	GetAlphaInformation(ctx context.Context, in *AlphaGetRequest, opts ...grpc.CallOption) (*AlphaGetReply, error)
+	GetAlphaInformationByID(ctx context.Context, in *AlphaGetByIDRequest, opts ...grpc.CallOption) (*AlphaGetReply, error)
 	UpdateAlphaInformation(ctx context.Context, in *AlphaUpdateRequest, opts ...grpc.CallOption) (*AlphaUpdateReply, error)
+	DeleteAlphaInformation(ctx context.Context, in *AlphaGetRequest, opts ...grpc.CallOption) (*AlphaUpdateReply, error)
 }
 
 type alphaCRUDRPCClient struct {
@@ -39,9 +41,27 @@ func (c *alphaCRUDRPCClient) GetAlphaInformation(ctx context.Context, in *AlphaG
 	return out, nil
 }
 
+func (c *alphaCRUDRPCClient) GetAlphaInformationByID(ctx context.Context, in *AlphaGetByIDRequest, opts ...grpc.CallOption) (*AlphaGetReply, error) {
+	out := new(AlphaGetReply)
+	err := c.cc.Invoke(ctx, "/main.AlphaCRUDRPC/GetAlphaInformationByID", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *alphaCRUDRPCClient) UpdateAlphaInformation(ctx context.Context, in *AlphaUpdateRequest, opts ...grpc.CallOption) (*AlphaUpdateReply, error) {
 	out := new(AlphaUpdateReply)
 	err := c.cc.Invoke(ctx, "/main.AlphaCRUDRPC/UpdateAlphaInformation", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *alphaCRUDRPCClient) DeleteAlphaInformation(ctx context.Context, in *AlphaGetRequest, opts ...grpc.CallOption) (*AlphaUpdateReply, error) {
+	out := new(AlphaUpdateReply)
+	err := c.cc.Invoke(ctx, "/main.AlphaCRUDRPC/DeleteAlphaInformation", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +73,9 @@ func (c *alphaCRUDRPCClient) UpdateAlphaInformation(ctx context.Context, in *Alp
 // for forward compatibility
 type AlphaCRUDRPCServer interface {
 	GetAlphaInformation(context.Context, *AlphaGetRequest) (*AlphaGetReply, error)
+	GetAlphaInformationByID(context.Context, *AlphaGetByIDRequest) (*AlphaGetReply, error)
 	UpdateAlphaInformation(context.Context, *AlphaUpdateRequest) (*AlphaUpdateReply, error)
+	DeleteAlphaInformation(context.Context, *AlphaGetRequest) (*AlphaUpdateReply, error)
 	mustEmbedUnimplementedAlphaCRUDRPCServer()
 }
 
@@ -64,8 +86,14 @@ type UnimplementedAlphaCRUDRPCServer struct {
 func (UnimplementedAlphaCRUDRPCServer) GetAlphaInformation(context.Context, *AlphaGetRequest) (*AlphaGetReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAlphaInformation not implemented")
 }
+func (UnimplementedAlphaCRUDRPCServer) GetAlphaInformationByID(context.Context, *AlphaGetByIDRequest) (*AlphaGetReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAlphaInformationByID not implemented")
+}
 func (UnimplementedAlphaCRUDRPCServer) UpdateAlphaInformation(context.Context, *AlphaUpdateRequest) (*AlphaUpdateReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAlphaInformation not implemented")
+}
+func (UnimplementedAlphaCRUDRPCServer) DeleteAlphaInformation(context.Context, *AlphaGetRequest) (*AlphaUpdateReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAlphaInformation not implemented")
 }
 func (UnimplementedAlphaCRUDRPCServer) mustEmbedUnimplementedAlphaCRUDRPCServer() {}
 
@@ -98,6 +126,24 @@ func _AlphaCRUDRPC_GetAlphaInformation_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlphaCRUDRPC_GetAlphaInformationByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AlphaGetByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlphaCRUDRPCServer).GetAlphaInformationByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.AlphaCRUDRPC/GetAlphaInformationByID",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlphaCRUDRPCServer).GetAlphaInformationByID(ctx, req.(*AlphaGetByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AlphaCRUDRPC_UpdateAlphaInformation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AlphaUpdateRequest)
 	if err := dec(in); err != nil {
@@ -116,6 +162,24 @@ func _AlphaCRUDRPC_UpdateAlphaInformation_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlphaCRUDRPC_DeleteAlphaInformation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AlphaGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlphaCRUDRPCServer).DeleteAlphaInformation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.AlphaCRUDRPC/DeleteAlphaInformation",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlphaCRUDRPCServer).DeleteAlphaInformation(ctx, req.(*AlphaGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AlphaCRUDRPC_ServiceDesc is the grpc.ServiceDesc for AlphaCRUDRPC service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -128,8 +192,16 @@ var AlphaCRUDRPC_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AlphaCRUDRPC_GetAlphaInformation_Handler,
 		},
 		{
+			MethodName: "GetAlphaInformationByID",
+			Handler:    _AlphaCRUDRPC_GetAlphaInformationByID_Handler,
+		},
+		{
 			MethodName: "UpdateAlphaInformation",
 			Handler:    _AlphaCRUDRPC_UpdateAlphaInformation_Handler,
+		},
+		{
+			MethodName: "DeleteAlphaInformation",
+			Handler:    _AlphaCRUDRPC_DeleteAlphaInformation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

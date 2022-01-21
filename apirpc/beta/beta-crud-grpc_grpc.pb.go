@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type BetaCRUDRPCClient interface {
 	GetBetaInformation(ctx context.Context, in *BetaGetRequest, opts ...grpc.CallOption) (*BetaGetReply, error)
 	UpdateBetaInformation(ctx context.Context, in *BetaUpdateRequest, opts ...grpc.CallOption) (*BetaUpdateReply, error)
+	DeleteBetaInformation(ctx context.Context, in *BetaGetRequest, opts ...grpc.CallOption) (*BetaUpdateReply, error)
 }
 
 type betaCRUDRPCClient struct {
@@ -48,12 +49,22 @@ func (c *betaCRUDRPCClient) UpdateBetaInformation(ctx context.Context, in *BetaU
 	return out, nil
 }
 
+func (c *betaCRUDRPCClient) DeleteBetaInformation(ctx context.Context, in *BetaGetRequest, opts ...grpc.CallOption) (*BetaUpdateReply, error) {
+	out := new(BetaUpdateReply)
+	err := c.cc.Invoke(ctx, "/main.BetaCRUDRPC/DeleteBetaInformation", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BetaCRUDRPCServer is the server API for BetaCRUDRPC service.
 // All implementations must embed UnimplementedBetaCRUDRPCServer
 // for forward compatibility
 type BetaCRUDRPCServer interface {
 	GetBetaInformation(context.Context, *BetaGetRequest) (*BetaGetReply, error)
 	UpdateBetaInformation(context.Context, *BetaUpdateRequest) (*BetaUpdateReply, error)
+	DeleteBetaInformation(context.Context, *BetaGetRequest) (*BetaUpdateReply, error)
 	mustEmbedUnimplementedBetaCRUDRPCServer()
 }
 
@@ -66,6 +77,9 @@ func (UnimplementedBetaCRUDRPCServer) GetBetaInformation(context.Context, *BetaG
 }
 func (UnimplementedBetaCRUDRPCServer) UpdateBetaInformation(context.Context, *BetaUpdateRequest) (*BetaUpdateReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateBetaInformation not implemented")
+}
+func (UnimplementedBetaCRUDRPCServer) DeleteBetaInformation(context.Context, *BetaGetRequest) (*BetaUpdateReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteBetaInformation not implemented")
 }
 func (UnimplementedBetaCRUDRPCServer) mustEmbedUnimplementedBetaCRUDRPCServer() {}
 
@@ -116,6 +130,24 @@ func _BetaCRUDRPC_UpdateBetaInformation_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BetaCRUDRPC_DeleteBetaInformation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BetaGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BetaCRUDRPCServer).DeleteBetaInformation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.BetaCRUDRPC/DeleteBetaInformation",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BetaCRUDRPCServer).DeleteBetaInformation(ctx, req.(*BetaGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BetaCRUDRPC_ServiceDesc is the grpc.ServiceDesc for BetaCRUDRPC service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -130,6 +162,10 @@ var BetaCRUDRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateBetaInformation",
 			Handler:    _BetaCRUDRPC_UpdateBetaInformation_Handler,
+		},
+		{
+			MethodName: "DeleteBetaInformation",
+			Handler:    _BetaCRUDRPC_DeleteBetaInformation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

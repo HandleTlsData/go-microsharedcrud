@@ -2,13 +2,12 @@ package sharedserver
 
 import (
 	"context"
+	"fmt"
 	"log"
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
-	"sharedcrud/dbmanager"
 	gdbmanager "sharedcrud/gormdb"
 	"sharedcrud/models"
-	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -18,6 +17,16 @@ var BetaConn *grpc.ClientConn
 
 type AlphaGRPCServer struct {
 	alpharpc.UnimplementedAlphaCRUDRPCServer
+}
+
+func (s *AlphaGRPCServer) GetAlphaInformationByID(ctx context.Context, req *alpharpc.AlphaGetByIDRequest) (*alpharpc.AlphaGetReply, error) {
+	entity, err := gdbmanager.GetEntityByID(req.GetID())
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Println(entity)
+	}
+	return &alpharpc.AlphaGetReply{ID: entity.ID, Name: entity.Name, Description: entity.Description, Status: entity.Status}, err
 }
 
 func (s *AlphaGRPCServer) GetAlphaInformation(ctx context.Context, req *alpharpc.AlphaGetRequest) (*alpharpc.AlphaGetReply, error) {
@@ -31,22 +40,35 @@ func (s *AlphaGRPCServer) GetAlphaInformation(ctx context.Context, req *alpharpc
 }
 
 func (s *AlphaGRPCServer) UpdateAlphaInformation(ctx context.Context, req *alpharpc.AlphaUpdateRequest) (*alpharpc.AlphaUpdateReply, error) {
-	i, err := strconv.Atoi(req.ID)
-	if err != nil {
-		// handle error
-		log.Println(err.Error())
-		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+
+	if req.GetID() > 0 {
+		entity, err := gdbmanager.GetEntityByID(req.GetID())
+
+		if err == nil {
+			err = gdbmanager.UpdateEntity(models.Entity{Name: req.GetName(), Status: req.GetStatus(), Description: req.GetDescription()}, entity.ID)
+			if err != nil {
+				log.Println(err.Error())
+				return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+			}
+			return &alpharpc.AlphaUpdateReply{Status: "200"}, nil
+		}
+		return &alpharpc.AlphaUpdateReply{Status: "500"}, fmt.Errorf("Incorrect entity given. No user was found with specified ID")
 	}
 
-	err = gdbmanager.StoreEntity(models.Entity{ID: int64(i), Name: req.Name, Description: req.Description, Status: req.Status})
+	entity, err := gdbmanager.GetEntityByName(req.GetName())
+
 	if err != nil {
-		// handle error
-		log.Println(err.Error())
-		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+		if err.Error() == gdbmanager.StrNoRecords {
+			err = gdbmanager.StoreEntity(models.Entity{Name: req.GetName(), Status: req.GetStatus(), Description: req.GetDescription()})
+			if err != nil {
+				log.Println(err.Error())
+				return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+			}
+			return &alpharpc.AlphaUpdateReply{Status: "200"}, nil
+		}
+		return &alpharpc.AlphaUpdateReply{Status: "500"}, fmt.Errorf("%s: %s", err.Error(), entity.Name)
 	}
-
-	return &alpharpc.AlphaUpdateReply{Status: "200"}, nil
-
+	return &alpharpc.AlphaUpdateReply{Status: "500"}, fmt.Errorf("Entity with such name already exists. Specify entity ID for update")
 }
 
 type BetaGRPCServer struct {
@@ -65,20 +87,32 @@ func (s *BetaGRPCServer) GetBetaInformation(ctx context.Context, req *betarpc.Be
 }
 
 func (s *BetaGRPCServer) UpdateBetaInformation(ctx context.Context, req *betarpc.BetaUpdateRequest) (*betarpc.BetaUpdateReply, error) {
-	i, err := strconv.Atoi(req.ID)
-	if err != nil {
-		// handle error
-		log.Println(err.Error())
-		return &betarpc.BetaUpdateReply{Status: "500"}, err
-	}
+	entity, err := gdbmanager.GetEntityByName(req.GetName())
 
-	err = dbmanager.StoreEntityBeta(&dbmanager.BetaDBConfig, dbmanager.DBEntity{ID: i, Name: req.Name,
-		Description: req.Description, Status: req.Status})
-	if err != nil {
-		// handle error
-		log.Println(err.Error())
-		return &betarpc.BetaUpdateReply{Status: "500"}, err
+	if err == nil {
+		err = gdbmanager.UpdateEntity(models.Entity{Name: req.GetName(), Status: entity.Status, Description: req.GetDescription()}, entity.ID)
+		if err != nil {
+			log.Println(err.Error())
+			return &betarpc.BetaUpdateReply{Status: "500"}, err
+		}
+		return &betarpc.BetaUpdateReply{Status: "200"}, nil
+	} else {
+		if err.Error() == gdbmanager.StrNoRecords {
+			err = gdbmanager.StoreEntity(models.Entity{ID: 0, Name: req.GetName(), Status: req.GetStatus(), Description: req.GetDescription()})
+			if err != nil {
+				log.Println(err.Error())
+				return &betarpc.BetaUpdateReply{Status: "500"}, err
+			}
+			return &betarpc.BetaUpdateReply{Status: "200"}, nil
+		}
 	}
+	return &betarpc.BetaUpdateReply{Status: "500"}, err
+}
 
-	return &betarpc.BetaUpdateReply{Status: "200"}, nil
+func (s *AlphaGRPCServer) DeleteAlphaInformation(ctx context.Context, req *alpharpc.AlphaGetRequest) (*alpharpc.AlphaUpdateReply, error) {
+	err := gdbmanager.DeleteEntityByName(req.GetEntityName())
+	if err != nil {
+		return &alpharpc.AlphaUpdateReply{Status: "500"}, err
+	}
+	return &alpharpc.AlphaUpdateReply{Status: "200"}, nil
 }

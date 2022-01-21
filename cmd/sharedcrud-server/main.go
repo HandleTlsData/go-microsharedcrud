@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/loads"
 	flags "github.com/jessevdk/go-flags"
 
+	"sharedcrud/dbmanager"
 	"sharedcrud/restapi"
 	"sharedcrud/restapi/operations"
 )
@@ -23,7 +24,16 @@ func Entry() {
 
 	api := operations.NewSharedcrudAPI(swaggerSpec)
 	server := restapi.NewServer(api)
-	server.Port = 1337
+
+	switch dbmanager.CurrentAppConfig {
+	case "alpha":
+		server.Port = 8080
+	case "beta":
+		server.Port = 8081
+	default:
+		log.Fatal("Unknown App Config. API Functions unimplemented")
+	}
+
 	defer server.Shutdown()
 
 	parser := flags.NewParser(server, flags.Default)

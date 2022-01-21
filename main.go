@@ -12,10 +12,8 @@ package main
 import (
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"sharedcrud/dbmanager"
-	sw "sharedcrud/go"
 
 	sharedserver "sharedcrud/api"
 	alpharpc "sharedcrud/apirpc/alpha"
@@ -57,20 +55,20 @@ func startBetaGRPC() {
 //can cause issues during application runtime.
 func startService(serviceName string) {
 	dbmanager.CurrentAppConfig = serviceName
-	go restAPI.Entry()
 	switch serviceName {
 	case "alpha":
 		go startAlphaGRPC()
-		router := sw.NewRouter(serviceName)
-		log.Fatal(http.ListenAndServe(":8080", router))
+		// router := sw.NewRouter(serviceName)
+		// log.Fatal(http.ListenAndServe(":8080", router))
 	case "beta":
 		go startBetaGRPC()
-		router := sw.NewRouter(serviceName)
-		log.Fatal(http.ListenAndServe(":8081", router))
+		// router := sw.NewRouter(serviceName)
+		// log.Fatal(http.ListenAndServe(":8081", router))
 	default:
 		log.Printf("unknown microservice role specified")
 		return
 	}
+	restAPI.Entry()
 }
 
 func main() {
