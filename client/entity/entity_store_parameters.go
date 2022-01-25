@@ -15,7 +15,7 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"test-server/models"
+	"sharedcrud/models"
 )
 
 // NewEntityStoreParams creates a new EntityStoreParams object,

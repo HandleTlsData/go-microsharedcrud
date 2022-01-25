@@ -12,7 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 
-	"test-server/models"
+	"sharedcrud/models"
 )
 
 // EntityGetReader is a Reader for the EntityGet structure.

@@ -3,296 +3,94 @@
 package restapi
 
 import (
-	"context"
 	"crypto/tls"
 	"log"
 	"net/http"
-	"net/url"
+
+	APIEntity "sharedcrud/restapi/operations/entity"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"google.golang.org/grpc"
 
-	alpharpc "sharedcrud/apirpc/alpha"
-	betarpc "sharedcrud/apirpc/beta"
 	gdbmanager "sharedcrud/gormdb"
-	"sharedcrud/models"
+	"sharedcrud/restapi/alphaAPI"
+	"sharedcrud/restapi/betaAPI"
 	"sharedcrud/restapi/operations"
 	"sharedcrud/restapi/operations/entity"
-	APIEntity "sharedcrud/restapi/operations/entity"
 )
 
-//go:generate swagger generate server --target ..\..\test-server --name Sharedcrud --spec ..\swagger\swagger.yml --principal interface{}
-
-func AlphaEntityDelete(params APIEntity.EntityDeleteParams) middleware.Responder {
-	var err error
-	entityName, err := url.QueryUnescape(params.EntityName)
-	if err != nil {
-		entityName = params.EntityName
-	}
-	entity, err := gdbmanager.GetEntityByName(entityName)
+func EntityDeleteAlpha(params APIEntity.EntityDeleteParams) middleware.Responder {
+	err := alphaAPI.EntityDelete(params)
 	if err != nil {
 		if err.Error() == gdbmanager.StrNoRecords {
 			return APIEntity.NewEntityDeleteNotFound()
 		} else {
-			log.Println(err.Error())
 			return middleware.Error(500, err.Error())
 		}
-	}
-	err = gdbmanager.DeleteEntityByName(entity.Name)
-	if err != nil {
-		log.Println(err.Error())
-		return middleware.Error(500, err.Error())
 	}
 	return APIEntity.NewEntityDeleteOK()
 }
 
-func AlphaEntityGet(params APIEntity.EntityGetParams) middleware.Responder {
-	var err error
-	entityName, err := url.QueryUnescape(params.EntityName)
-	if err != nil {
-		log.Println(err.Error())
-		entityName = params.EntityName
-	}
-	log.Println(entityName)
-
-	entity, err := gdbmanager.GetEntityByName(entityName)
+func EntityGetAlpha(params APIEntity.EntityGetParams) middleware.Responder {
+	entity, err := alphaAPI.EntityGet(params)
 	if err != nil {
 		if err.Error() == gdbmanager.StrNoRecords {
 			return APIEntity.NewEntityGetNotFound()
 		} else {
-			log.Println(err.Error())
 			return middleware.Error(500, err.Error())
 		}
 	}
-
-	conn, err := grpc.Dial(":8001", grpc.WithInsecure())
-	if err != nil {
-		log.Println(err.Error())
+	if entity != nil {
+		return APIEntity.NewEntityGetOK().WithPayload(entity)
 	}
-
-	//asking Beta microservice for entity from its own db
-	bRPC := betarpc.NewBetaCRUDRPCClient(conn)
-	betaEntity, grpcerr := bRPC.GetBetaInformation(context.Background(), &betarpc.BetaGetRequest{EntityName: entity.Name})
-
-	if grpcerr != nil || betaEntity == nil {
-		log.Println(grpcerr.Error())
-		return middleware.Error(500, grpcerr.Error())
-	}
-
-	// Beta always contains very last Description since it is only responsible for Description modifications
-	entity.Description = betaEntity.GetDescription()
-
-	log.Printf("%+v\n", entity)
-	var responsePayload []*models.Entity
-	responsePayload = append(responsePayload, &entity)
-	return APIEntity.NewEntityGetOK().WithPayload(responsePayload)
-
+	return middleware.Error(500, "")
 }
 
-func AlphaEntityStore(params APIEntity.EntityStoreParams) middleware.Responder {
-	var err error
-	newEntity := *params.Body
-
-	conn, err := grpc.Dial(":8001", grpc.WithInsecure())
+func EntityStoreAlpha(params APIEntity.EntityStoreParams) middleware.Responder {
+	err := alphaAPI.EntityStore(params)
 	if err != nil {
-		log.Println(err.Error())
+		return middleware.Error(500, err.Error())
 	}
-
-	//asking Beta microservice for entity from its own db
-	bRPC := betarpc.NewBetaCRUDRPCClient(conn)
-
-	//means user want to update existing entity. Primary ID stored in alpha db
-	if newEntity.ID > 0 {
-		oldEntity, err := gdbmanager.GetEntityByID(newEntity.ID)
-		log.Println("update existing entity")
-
-		if err != nil {
-			return middleware.Error(500, err.Error())
-		}
-
-		betaDBEntity, grpcerr := bRPC.GetBetaInformation(context.Background(), &betarpc.BetaGetRequest{EntityName: oldEntity.Name})
-
-		if grpcerr != nil || betaDBEntity == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-
-		//we can't modify description here
-		newEntity.Description = betaDBEntity.Description
-
-		err = gdbmanager.UpdateEntity(newEntity, oldEntity.ID)
-		if err != nil {
-			return middleware.Error(500, err.Error())
-		}
-		betaResponse, grpcerr := bRPC.UpdateBetaInformation(context.Background(), &betarpc.BetaUpdateRequest{ID: 0,
-			Name: newEntity.Name, Status: newEntity.Status, Description: newEntity.Description})
-
-		if grpcerr != nil || betaResponse == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-
-	} else {
-		log.Println("create a new entity")
-		err = gdbmanager.StoreEntity(*params.Body)
-		if err != nil {
-			return middleware.Error(500, err.Error())
-		}
-		betaEntity, grpcerr := bRPC.UpdateBetaInformation(context.Background(), &betarpc.BetaUpdateRequest{ID: 0,
-			Name: newEntity.Name, Status: newEntity.Status, Description: newEntity.Description})
-
-		if grpcerr != nil || betaEntity == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-	}
-
 	return APIEntity.NewEntityStoreOK()
 }
 
-func BetaEntityStore(params APIEntity.EntityStoreParams) middleware.Responder {
-	var err error
-	newEntity := *params.Body
-
-	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
+func EntityStoreBeta(params APIEntity.EntityStoreParams) middleware.Responder {
+	err := betaAPI.EntityStore(params)
 	if err != nil {
-		log.Println(err.Error())
+		return middleware.Error(500, err.Error())
 	}
-	aRPC := alpharpc.NewAlphaCRUDRPCClient(conn)
-
-	//means user want to update existing entity. Primary ID stored in alpha db
-	if newEntity.ID > 0 {
-		alphaEntity, grpcerr := aRPC.GetAlphaInformationByID(context.Background(), &alpharpc.AlphaGetByIDRequest{ID: newEntity.ID})
-
-		if grpcerr != nil || alphaEntity == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-
-		//beta can only modify Description and Status
-		newEntity.Name = alphaEntity.Name
-
-		alphaReply, grpcerr := aRPC.UpdateAlphaInformation(context.Background(), &alpharpc.AlphaUpdateRequest{ID: newEntity.ID,
-			Name: newEntity.Name, Description: newEntity.Description, Status: newEntity.Status})
-
-		if grpcerr != nil || alphaReply == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-
-		betaEntity, err := gdbmanager.GetEntityByName(newEntity.Name)
-		betaEntity.Description = newEntity.Description
-
-		err = gdbmanager.UpdateEntity(betaEntity, betaEntity.ID)
-		if err != nil {
-			return middleware.Error(500, err.Error())
-		}
-
-		return APIEntity.NewEntityStoreOK()
-
-	} else {
-		err = gdbmanager.StoreEntity(newEntity)
-		if err != nil {
-			return middleware.Error(500, err.Error())
-		}
-
-		alphaReply, grpcerr := aRPC.UpdateAlphaInformation(context.Background(), &alpharpc.AlphaUpdateRequest{ID: newEntity.ID,
-			Name: newEntity.Name, Description: newEntity.Description, Status: newEntity.Status})
-
-		if grpcerr != nil || alphaReply == nil {
-			log.Println(grpcerr.Error())
-			return middleware.Error(500, grpcerr.Error())
-		}
-
-		return APIEntity.NewEntityStoreOK()
-
-	}
+	return APIEntity.NewEntityStoreOK()
 }
 
-func BetaEntityDelete(params APIEntity.EntityDeleteParams) middleware.Responder {
-	var err error
-	entityName, err := url.QueryUnescape(params.EntityName)
-	if err != nil {
-		entityName = params.EntityName
-	}
-
-	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	//asking Alpha first since Alpha is owner of Name field, which is our key to search records
-	aRPC := alpharpc.NewAlphaCRUDRPCClient(conn)
-	alphaEntity, grpcerr := aRPC.DeleteAlphaInformation(context.Background(), &alpharpc.AlphaGetRequest{EntityName: entityName})
-
-	if grpcerr != nil || alphaEntity == nil {
-		log.Println(grpcerr.Error())
-		return middleware.Error(500, grpcerr.Error())
-	}
-
-	entity, err := gdbmanager.GetEntityByName(entityName)
+func EntityDeleteBeta(params APIEntity.EntityDeleteParams) middleware.Responder {
+	err := alphaAPI.EntityDelete(params)
 	if err != nil {
 		if err.Error() == gdbmanager.StrNoRecords {
 			return APIEntity.NewEntityDeleteNotFound()
 		} else {
-			log.Println(err.Error())
 			return middleware.Error(500, err.Error())
 		}
-	}
-	err = gdbmanager.DeleteEntityByName(entity.Name)
-	if err != nil {
-		log.Println(err.Error())
-		return middleware.Error(500, err.Error())
 	}
 	return APIEntity.NewEntityDeleteOK()
 }
 
-func BetaEntityGet(params APIEntity.EntityGetParams) middleware.Responder {
-	var err error
-	entityName, err := url.QueryUnescape(params.EntityName)
-	if err != nil {
-		log.Println(err.Error())
-		entityName = params.EntityName
-	}
-	log.Println(entityName)
-
-	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	//asking Alpha first since Alpha is owner of Name field, which is our key to search records
-	aRPC := alpharpc.NewAlphaCRUDRPCClient(conn)
-	alphaEntity, grpcerr := aRPC.GetAlphaInformation(context.Background(), &alpharpc.AlphaGetRequest{EntityName: entityName})
-
-	if grpcerr != nil || alphaEntity == nil {
-		if grpcerr.Error() == gdbmanager.StrNoRecords {
-			return APIEntity.NewEntityGetNotFound()
-		}
-		log.Println(grpcerr.Error())
-		return middleware.Error(500, grpcerr.Error())
-	}
-
-	entity, err := gdbmanager.GetEntityByName(entityName)
+func EntityGetBeta(params APIEntity.EntityGetParams) middleware.Responder {
+	entity, err := alphaAPI.EntityGet(params)
 	if err != nil {
 		if err.Error() == gdbmanager.StrNoRecords {
 			return APIEntity.NewEntityGetNotFound()
 		} else {
-			log.Println(err.Error())
 			return middleware.Error(500, err.Error())
 		}
 	}
-
-	entity.ID = alphaEntity.GetID()
-	entity.Status = alphaEntity.GetStatus()
-
-	log.Printf("%+v\n", entity)
-	var responsePayload []*models.Entity
-	responsePayload = append(responsePayload, &entity)
-	return APIEntity.NewEntityGetOK().WithPayload(responsePayload)
+	if entity != nil {
+		return APIEntity.NewEntityGetOK().WithPayload(entity)
+	}
+	return middleware.Error(500, "")
 }
+
+//go:generate swagger generate server --target ..\..\test-server --name Sharedcrud --spec ..\swagger\swagger.yml --principal interface{}
 
 func configureFlags(api *operations.SharedcrudAPI) {
 	// api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{ ... }
@@ -320,13 +118,13 @@ func configureAPI(api *operations.SharedcrudAPI) http.Handler {
 
 	switch gdbmanager.CurrentAppConfig {
 	case "alpha":
-		api.EntityEntityDeleteHandler = entity.EntityDeleteHandlerFunc(AlphaEntityDelete)
-		api.EntityEntityGetHandler = entity.EntityGetHandlerFunc(AlphaEntityGet)
-		api.EntityEntityStoreHandler = entity.EntityStoreHandlerFunc(AlphaEntityStore)
+		api.EntityEntityDeleteHandler = entity.EntityDeleteHandlerFunc(EntityDeleteAlpha)
+		api.EntityEntityGetHandler = entity.EntityGetHandlerFunc(EntityGetAlpha)
+		api.EntityEntityStoreHandler = entity.EntityStoreHandlerFunc(EntityStoreAlpha)
 	case "beta":
-		api.EntityEntityDeleteHandler = entity.EntityDeleteHandlerFunc(BetaEntityDelete)
-		api.EntityEntityGetHandler = entity.EntityGetHandlerFunc(BetaEntityGet)
-		api.EntityEntityStoreHandler = entity.EntityStoreHandlerFunc(BetaEntityStore)
+		api.EntityEntityDeleteHandler = entity.EntityDeleteHandlerFunc(EntityDeleteBeta)
+		api.EntityEntityGetHandler = entity.EntityGetHandlerFunc(EntityGetBeta)
+		api.EntityEntityStoreHandler = entity.EntityStoreHandlerFunc(EntityStoreBeta)
 	default:
 		log.Fatal("Unknown App Config. API Functions unimplemented")
 	}

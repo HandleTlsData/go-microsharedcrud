@@ -11,45 +11,12 @@ package main
 
 import (
 	"log"
-	"net"
 	"os"
 
 	sharedserver "sharedcrud/api"
-	alpharpc "sharedcrud/apirpc/alpha"
-	betarpc "sharedcrud/apirpc/beta"
 	restAPI "sharedcrud/cmd/sharedcrud-server"
 	gdbmanager "sharedcrud/gormdb"
-
-	"google.golang.org/grpc"
 )
-
-func startAlphaGRPC() {
-	s := grpc.NewServer()
-	srv := &sharedserver.AlphaGRPCServer{}
-	alpharpc.RegisterAlphaCRUDRPCServer(s, srv)
-	conn, err := net.Listen("tcp", ":8000")
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	if err := s.Serve(conn); err != nil {
-		log.Fatal(err.Error())
-	}
-
-}
-
-func startBetaGRPC() {
-	s := grpc.NewServer()
-	srv := &sharedserver.BetaGRPCServer{}
-	betarpc.RegisterBetaCRUDRPCServer(s, srv)
-	conn, err := net.Listen("tcp", ":8001")
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	if err := s.Serve(conn); err != nil {
-		log.Fatal(err.Error())
-	}
-
-}
 
 //using two grpc servers linked in the same binary with same message names (GetRequest, GetReply, etc...)
 //can cause issues during application runtime.
@@ -57,9 +24,9 @@ func startService(serviceName string) {
 	gdbmanager.CurrentAppConfig = serviceName
 	switch serviceName {
 	case "alpha":
-		go startAlphaGRPC()
+		go sharedserver.StartAlphaGRPC()
 	case "beta":
-		go startBetaGRPC()
+		go sharedserver.StartBetaGRPC()
 	default:
 		log.Printf("unknown microservice role specified")
 		return

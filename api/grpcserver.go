@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	alpharpc "sharedcrud/apirpc/alpha"
 	betarpc "sharedcrud/apirpc/beta"
 	gdbmanager "sharedcrud/gormdb"
@@ -11,6 +12,34 @@ import (
 
 	"google.golang.org/grpc"
 )
+
+func StartAlphaGRPC() {
+	s := grpc.NewServer()
+	srv := &AlphaGRPCServer{}
+	alpharpc.RegisterAlphaCRUDRPCServer(s, srv)
+	conn, err := net.Listen("tcp", ":8000")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	if err := s.Serve(conn); err != nil {
+		log.Fatal(err.Error())
+	}
+
+}
+
+func StartBetaGRPC() {
+	s := grpc.NewServer()
+	srv := &BetaGRPCServer{}
+	betarpc.RegisterBetaCRUDRPCServer(s, srv)
+	conn, err := net.Listen("tcp", ":8001")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	if err := s.Serve(conn); err != nil {
+		log.Fatal(err.Error())
+	}
+
+}
 
 var AlphaConn *grpc.ClientConn
 var BetaConn *grpc.ClientConn
